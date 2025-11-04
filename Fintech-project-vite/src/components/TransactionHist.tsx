@@ -14,8 +14,8 @@ const TransactionHist: React.FC<TransactionHistProps> = ({
     value,
     type,
 }) => {
-    const color = type === "in" ? "text-[#45BB3C]" : "text-[#FF5A5A]";
-    const arrow = type === "in" ? <FaArrowAltCircleDown color="#45BB3C"/> : <FaArrowAltCircleUp color="#FF5A5A"/>;
+    const color = type === "in" ? "text-[#16a34a]" : "text-red-600";
+    const arrow = type === "in" ? <FaArrowAltCircleDown color="#16a34a"/> : <FaArrowAltCircleUp color="#FF5A5A"/>;
 
     return (
         <div className="flex justify-between items-center bg-[#D9D9D9] rounded-lg p-5 m-4  border hover:bg-gray-100 transition-colors duration-300 shadow-md">

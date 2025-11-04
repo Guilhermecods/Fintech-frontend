@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 const NavButtonHome = () => {
     const buttons = [
-        { label: "Cartões", path: "/cartoes" },
+        { label: "Bancos", path: "/bancos" },
         { label: "Perfil", path: "/perfil" },
         { label: "Adicionar", path: "/adicionar" },
     ];

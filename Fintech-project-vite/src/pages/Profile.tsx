@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import Button from "../components/Button";
 import MenuButton from "../components/MenuButton";
 import Navbar from "../components/Navbar";
@@ -8,7 +9,7 @@ const Profile: React.FC = () => {
 
     return (
         <div className="min-h-screen flex flex-col bg-[#122925]">
-            <Navbar />
+            <Link to={"/home"}><Navbar /></Link>
 
             <div className="flex flex-col items-center justify-center  px-6 mt-5">
                 <div className="w-full max-w-lg rounded-lg space-y-4 border border-[#122925] p-6 bg-[#C3C3C3] ">

@@ -7,6 +7,9 @@ import SaldoCard from "../components/SaldoCard";
 import ButtonSquareHome from "../components/ButtonSquareHome";
 import NavButtonHome from "../components/NavButtonHome";
 import TransactionHist from "../components/TransactionHist";
+import { Link } from "react-router-dom";
+
+
 
 const Home: React.FC = () => {
     const [saldo] = useState(10000);
@@ -31,9 +34,9 @@ const Home: React.FC = () => {
             </div>
 
             <div className="flex gap-4 m-5">
-                <ButtonSquareHome icon={<FaArrowDown size={24} color="#b91c1c" />} color="bg-[#C3C3C3]"  />
+                <Link to={"/gastos"}><ButtonSquareHome icon={<FaArrowDown size={24} color="#b91c1c" />} color="bg-[#C3C3C3]"  /></Link>
                 <ButtonSquareHome icon={<FaChartLine size={24} color="#000" />} color="bg-[#C3C3C3]" />
-                <ButtonSquareHome icon={<FaArrowUp size={24} color="#16a34a" />} color="bg-[#C3C3C3]" />
+                <Link to={"/recebimentos"}><ButtonSquareHome icon={<FaArrowUp size={24} color="#16a34a" />} color="bg-[#C3C3C3]" /></Link>
                 
 
             </div>
