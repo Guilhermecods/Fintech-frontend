@@ -1,51 +1,128 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import DateFilter from "../components/DateFilter";
 import TransactionList from "../components/TransactionList";
 import TransactionEditCard from "../components/TransactionEditCard";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import type { Expenses } from "../shared/@types/transactions";
+import { getExpenses } from "../shared/services/expenses";
 
-interface Transaction {
-    title: string;
-    date: string;
-    time: string;
-    amount: number;
-}
+// Helper function to parse dtGasto (ISO format or date string) to date and time
+const parseExpenseDate = (dtGasto: string): { date: string; time: string } => {
+    // If it's an ISO string with time (e.g., "2025-04-11T16:03:00")
+    if (dtGasto.includes("T")) {
+        const [datePart, timePart] = dtGasto.split("T");
+        const time = timePart ? timePart.substring(0, 5) : "00:00"; // Extract HH:MM
+        return { date: datePart, time };
+    }
+    // If it's just a date (e.g., "2025-04-11")
+    return { date: dtGasto, time: "00:00" };
+};
 
 const Gastos: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [gastos, setGastos] = useState<Transaction[]>([
-        { title: "Alimentação", date: "2025-04-11", time: "16:03", amount: 195.9 },
-        { title: "Transporte", date: "2025-04-10", time: "15:22", amount: 30.9 },
-        { title: "Lazer", date: "2025-04-11", time: "09:41", amount: 125.0 },
-    ]);
+    const navigate = useNavigate();
+    
+    const token = useMemo(() => localStorage.getItem("token"), []);
+    const isLoggedIn = useMemo(() => token !== null, [token]);
+    
+    const [gastos, setGastos] = useState<Expenses[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Controle do modal
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    // Controle do modal - store the cdGasto ID instead of index
+    const [editingId, setEditingId] = useState<number | null>(null);
+
+    useEffect(() => {
+        const fetchExpenses = async () => {
+            if (!isLoggedIn || !token) {
+                navigate("/");
+                return;
+            }
+            try {
+                setLoading(true);
+                const expenses = await getExpenses(token);
+                setGastos(expenses);
+            } catch (error) {
+                console.error("Error fetching expenses:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchExpenses();
+    }, [isLoggedIn, token, navigate]);
+
+    const filtered = gastos.filter((expense) => {
+        const matchesQuery =
+            expense.nmGasto.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            expense.vlGasto.toString().includes(searchQuery);
+        
+        const { date } = parseExpenseDate(expense.dtGasto);
+        const matchesDate = selectedDate ? date === selectedDate : true;
+        
+        return matchesQuery && matchesDate;
+    });
 
     const handleDelete = (index: number) => {
-        setGastos((prev) => prev.filter((_, i) => i !== index));
+        const expenseToDelete = filtered[index];
+        setGastos((prev) => prev.filter((expense) => expense.cdGasto !== expenseToDelete.cdGasto));
     };
 
     const handleUpdate = (index: number) => {
-        setEditingIndex(index);
+        const expenseToEdit = filtered[index];
+        setEditingId(expenseToEdit.cdGasto);
     };
 
-    const handleSave = (updated: Transaction) => {
-        if (editingIndex === null) return;
+    const handleSave = async (updated: { title: string; amount: number; date: string; time: string }) => {
+        if (editingId === null || !token) return;
+        
         setGastos((prev) =>
-            prev.map((t, i) => (i === editingIndex ? updated : t))
+            prev.map((expense) => {
+                if (expense.cdGasto === editingId) {
+                    // Convert back to Expenses format
+                    const dtGasto = `${updated.date}T${updated.time}:00`;
+                    return {
+                        ...expense,
+                        nmGasto: updated.title,
+                        vlGasto: updated.amount,
+                        dtGasto,
+                    };
+                }
+                return expense;
+            })
         );
+        setEditingId(null);
+        
+        // Opcional: recarrega da API para garantir sincronização
+        // await fetchExpenses();
     };
 
-    const filtered = gastos.filter((t) => {
-        const matchesQuery =
-            t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            t.amount.toString().includes(searchQuery);
-        const matchesDate = selectedDate ? t.date === selectedDate : true;
-        return matchesQuery && matchesDate;
+    const cardTransactions = filtered.map((expense) => {
+        const { date, time } = parseExpenseDate(expense.dtGasto);
+        return {
+            title: expense.nmGasto,
+            date,
+            time,
+            amount: expense.vlGasto,
+        };
     });
+
+    const editingExpense = editingId !== null 
+        ? gastos.find((exp) => exp.cdGasto === editingId)
+        : null;
+    
+    const editingCardData = editingExpense 
+        ? (() => {
+            const { date, time } = parseExpenseDate(editingExpense.dtGasto);
+            return {
+                title: editingExpense.nmGasto,
+                date,
+                time,
+                amount: editingExpense.vlGasto,
+            };
+        })()
+        : null;
 
     return (
         <div className="min-h-screen bg-[#122925] flex flex-col items-center">
@@ -54,20 +131,25 @@ const Gastos: React.FC = () => {
                 date={selectedDate}
                 onDateChange={setSelectedDate}
                 onSearch={setSearchQuery}
+                placeholder="Pesquisar gasto..."
             />
-            <TransactionList
-                transactions={filtered}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-                variant="gasto" // alterei para diferenciar de receita
-            />
+            {loading ? (
+                <div className="mt-6 text-gray-400">Carregando gastos...</div>
+            ) : (
+                <TransactionList
+                    transactions={cardTransactions}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
+                    variant="gasto"
+                />
+            )}
 
-            {editingIndex !== null && (
+            {editingId !== null && editingCardData && (
                 <TransactionEditCard
-                    isOpen={editingIndex !== null}
-                    onClose={() => setEditingIndex(null)}
+                    isOpen={editingId !== null}
+                    onClose={() => setEditingId(null)}
                     onSave={handleSave}
-                    initialData={gastos[editingIndex]}
+                    initialData={editingCardData}
                 />
             )}
         </div>
