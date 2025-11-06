@@ -21,3 +21,25 @@ export async function getReceipts(token: string): Promise<Receipts[]> {
     throw error;
   }
 }
+
+export async function updateReceipt(receipt: Receipts): Promise<Receipts> {
+  try {
+    const response = await apiClient.put<Receipts>(
+      `${API_URL}/recebimentos/${receipt.cdRecebimento}`,
+      receipt
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateReceipt:", error);
+    throw error;
+  }
+}
+
+export async function deleteReceipt(receipt: Receipts): Promise<void> {
+  try {
+    await apiClient.delete(`${API_URL}/recebimentos/${receipt.cdRecebimento}`);
+  } catch (error) {
+    console.error("Error in deleteReceipt:", error);
+    throw error;
+  }
+}

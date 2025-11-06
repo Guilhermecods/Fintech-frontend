@@ -5,7 +5,7 @@ import TransactionList from "../components/TransactionList";
 import TransactionEditCard from "../components/TransactionEditCard";
 import { Link, useNavigate } from "react-router-dom";
 import type { Expenses } from "../shared/@types/transactions";
-import { getExpenses } from "../shared/services/expenses";
+import { deleteExpense, getExpenses, updateExpense } from "../shared/services/expenses";
 
 // Helper function to parse dtGasto (ISO format or date string) to date and time
 const parseExpenseDate = (dtGasto: string): { date: string; time: string } => {
@@ -33,25 +33,26 @@ const Gastos: React.FC = () => {
     // Controle do modal - store the cdGasto ID instead of index
     const [editingId, setEditingId] = useState<number | null>(null);
 
-    useEffect(() => {
-        const fetchExpenses = async () => {
-            if (!isLoggedIn || !token) {
-                navigate("/");
-                return;
-            }
-            try {
-                setLoading(true);
-                const expenses = await getExpenses(token);
-                setGastos(expenses);
-            } catch (error) {
-                console.error("Error fetching expenses:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    
+    const fetchExpenses = async () => {
+        if (!isLoggedIn || !token) {
+            navigate("/");
+            return;
+        }
+        try {
+            setLoading(true);
+            const expenses = await getExpenses(token);
+            setGastos(expenses);
+        } catch (error) {
+            console.error("Error fetching expenses:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchExpenses();
-    }, [isLoggedIn, token, navigate]);
+    }, []);
 
     const filtered = gastos.filter((expense) => {
         const matchesQuery =
@@ -64,8 +65,9 @@ const Gastos: React.FC = () => {
         return matchesQuery && matchesDate;
     });
 
-    const handleDelete = (index: number) => {
+    const handleDelete = async (index: number) => {
         const expenseToDelete = filtered[index];
+        await deleteExpense(expenseToDelete);
         setGastos((prev) => prev.filter((expense) => expense.cdGasto !== expenseToDelete.cdGasto));
     };
 
@@ -76,26 +78,25 @@ const Gastos: React.FC = () => {
 
     const handleSave = async (updated: { title: string; amount: number; date: string; time: string }) => {
         if (editingId === null || !token) return;
+
+        const gasto = gastos.find((expense) => expense.cdGasto === editingId);
+        if (!gasto) return;
         
-        setGastos((prev) =>
-            prev.map((expense) => {
-                if (expense.cdGasto === editingId) {
-                    // Convert back to Expenses format
-                    const dtGasto = `${updated.date}T${updated.time}:00`;
-                    return {
-                        ...expense,
-                        nmGasto: updated.title,
-                        vlGasto: updated.amount,
-                        dtGasto,
-                    };
-                }
-                return expense;
-            })
-        );
+        const updatedExpense: Expenses = {
+            cdGasto: gasto.cdGasto,
+            dsGasto: gasto.dsGasto,
+            nmGasto: updated.title,
+            vlGasto: updated.amount,
+            cdUsuario: gasto.cdUsuario,
+            cdCategoria: gasto.cdCategoria,
+            dtGasto: `${updated.date}T${updated.time}:00`,
+        };
+
+        await updateExpense(updatedExpense);
+        
         setEditingId(null);
         
-        // Opcional: recarrega da API para garantir sincronização
-        // await fetchExpenses();
+        await fetchExpenses();
     };
 
     const cardTransactions = filtered.map((expense) => {

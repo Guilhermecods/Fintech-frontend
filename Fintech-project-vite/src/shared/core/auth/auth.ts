@@ -43,7 +43,8 @@ export async function doRegister(userInfo: UserInfo & Authentication) {
 }
 
 export function doLogout() {
-  console.log("Logout");
+  localStorage.removeItem("token");
+  window.location.href = "/";
 }
 
 export async function createAuthentication(userInfo: Authentication) {

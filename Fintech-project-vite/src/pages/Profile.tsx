@@ -10,6 +10,7 @@ import {
   AiOutlineGift,
   AiOutlineQuestion,
 } from "react-icons/ai";
+import { doLogout } from "@/shared/core/auth/auth";
 
 const Profile: React.FC = () => {
   return (
@@ -34,7 +35,7 @@ const Profile: React.FC = () => {
           <MenuButton icon={<AiOutlineQuestion />} label="Sobre o CashApp" />
 
           <div className="mt-9  justify-center flex">
-            <Button text="Logout" onClick={() => console.log("Cadastrado")} />
+            <Button text="Logout" onClick={doLogout} />
           </div>
         </div>
       </div>

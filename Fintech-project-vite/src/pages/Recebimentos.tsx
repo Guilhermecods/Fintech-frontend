@@ -5,7 +5,7 @@ import TransactionList from "../components/TransactionList";
 import TransactionEditCard from "../components/TransactionEditCard";
 import { Link, useNavigate } from "react-router-dom";
 import type { Receipts } from "../shared/@types/transactions";
-import { getReceipts } from "../shared/services/receipts";
+import { deleteReceipt, getReceipts, updateReceipt } from "../shared/services/receipts";
 
 // Helper function to parse dtRecebimento (ISO format or date string) to date and time
 const parseReceiptDate = (dtRecebimento: string): { date: string; time: string } => {
@@ -33,26 +33,26 @@ const Recebimentos: React.FC = () => {
     // Controle do modal - store the cdRecebimento ID instead of index
     const [editingId, setEditingId] = useState<number | null>(null);
 
-    useEffect(() => {
-        const fetchReceipts = async () => {
-            if (!isLoggedIn || !token) {
-                navigate("/");
-                return;
-            }
-            try {
-                setLoading(true);
-                const receipts = await getReceipts(token);
-                setRecebimentos(receipts);
-            } catch (error) {
-                console.error("Error fetching receipts:", error);
-                // Em caso de erro, mantém o array vazio ou mostra mensagem de erro
-            } finally {
-                setLoading(false);
-            }
-        };
+    
+    const fetchReceipts = async () => {
+        if (!isLoggedIn || !token) {
+            navigate("/");
+            return;
+        }
+        try {
+            setLoading(true);
+            const receipts = await getReceipts(token);
+            setRecebimentos(receipts);
+        } catch (error) {
+            console.error("Error fetching receipts:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchReceipts();
-    }, [isLoggedIn, token, navigate]);
+    }, []);
 
     const filtered = recebimentos.filter((receipt) => {
         const matchesQuery =
@@ -65,41 +65,38 @@ const Recebimentos: React.FC = () => {
         return matchesQuery && matchesDate;
     });
 
-    const handleDelete = (index: number) => {
-        // Get the receipt from filtered array and find it in original array by cdRecebimento
+    const handleDelete = async (index: number) => {
         const receiptToDelete = filtered[index];
+        await deleteReceipt(receiptToDelete);
         setRecebimentos((prev) => prev.filter((receipt) => receipt.cdRecebimento !== receiptToDelete.cdRecebimento));
     };
 
     const handleUpdate = (index: number) => {
-        // Get the receipt from filtered array and store its cdRecebimento
         const receiptToEdit = filtered[index];
         setEditingId(receiptToEdit.cdRecebimento);
     };
 
     const handleSave = async (updated: { title: string; amount: number; date: string; time: string }) => {
         if (editingId === null || !token) return;
+
+        const receipt = recebimentos.find((rec) => rec.cdRecebimento === editingId);
+        if (!receipt) return;
         
-        // Atualiza localmente (opcional: você pode fazer uma chamada PUT/PATCH para a API aqui)
-        setRecebimentos((prev) =>
-            prev.map((receipt) => {
-                if (receipt.cdRecebimento === editingId) {
-                    // Convert back to Receipts format
-                    const dtRecebimento = `${updated.date}T${updated.time}:00`;
-                    return {
-                        ...receipt,
-                        nmRecebimento: updated.title,
-                        vlRecebimento: updated.amount,
-                        dtRecebimento,
-                    };
-                }
-                return receipt;
-            })
-        );
+        const updatedReceipt: Receipts = {
+            cdRecebimento: receipt.cdRecebimento,
+            dsRecebimento: receipt.dsRecebimento,
+            nmRecebimento: updated.title,
+            vlRecebimento: updated.amount,
+            cdUsuario: receipt.cdUsuario,
+            cdCategoria: receipt.cdCategoria,
+            dtRecebimento: `${updated.date}T${updated.time}:00`,
+        };
+
+        await updateReceipt(updatedReceipt);
+        
         setEditingId(null);
         
-        // Opcional: recarrega da API para garantir sincronização
-        // await fetchReceipts();
+        await fetchReceipts();
     };
 
     // Convert filtered receipts to TransactionCard format

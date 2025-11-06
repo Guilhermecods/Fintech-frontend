@@ -21,3 +21,25 @@ export async function getExpenses(token: string): Promise<Expenses[]> {
     throw error;
   }
 }
+
+export async function updateExpense(expense: Expenses): Promise<Expenses> {
+  try {
+    const response = await apiClient.put<Expenses>(
+      `${API_URL}/gastos/${expense.cdGasto}`,
+      expense
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateExpense:", error);
+    throw error;
+  }
+}
+
+export async function deleteExpense(expense: Expenses): Promise<void> {
+  try {
+    await apiClient.delete(`${API_URL}/gastos/${expense.cdGasto}`);
+  } catch (error) {
+    console.error("Error in deleteExpense:", error);
+    throw error;
+  }
+}

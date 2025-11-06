@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import Recebimentos from "./pages/Recebimentos";
 import Gastos from "./pages/Gastos";
 import GerenciarBancos from "./pages/GerenciarBancos";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/recebimentos" element={<Recebimentos />} />
         <Route path="/gastos" element={<Gastos />} />
         <Route path="/bancos" element={<GerenciarBancos />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
